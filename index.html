@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EGE Quest — Подготовка к ЕГЭ по русскому языку</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- PRELOADER -->
+    <div id="preloader" class="preloader">
+        <div class="preloader-inner">
+            <div class="preloader-glyph">ЕГЭ</div>
+            <div class="preloader-title">QUEST</div>
+            <div class="preloader-bar"><div class="preloader-fill"></div></div>
+        </div>
+    </div>
+
+    <!-- ===== LOGIN ===== -->
+    <div id="screen-login" class="screen active">
+        <div class="login-bg">
+            <div class="login-particles" id="login-particles"></div>
+        </div>
+        <div class="login-container">
+            <div class="login-brand">
+                <div class="brand-badge">ЕГЭ</div>
+                <h1 class="brand-title">QUEST</h1>
+                <p class="brand-sub">Русский язык · Подготовка к экзамену</p>
+            </div>
+            <div class="login-card glass">
+                <div class="tab-row" id="auth-mode-tabs">
+                    <button class="tab active" data-mode="signin">Войти</button>
+                    <button class="tab" data-mode="signup">Создать аккаунт</button>
+                </div>
+                <div class="field">
+                    <label>Email</label>
+                    <input type="email" id="login-email" placeholder="your@email.com" autocomplete="email">
+                </div>
+                <div class="field">
+                    <label>Пароль</label>
+                    <input type="password" id="login-password" placeholder="Минимум 6 символов" autocomplete="current-password">
+                </div>
+                <div id="signup-fields" class="hidden">
+                    <div class="tab-row">
+                        <button class="tab active" data-tab="student">Ученик</button>
+                        <button class="tab" data-tab="teacher">Учитель</button>
+                    </div>
+                    <div id="role-hint-student" class="role-hint">Введите имя и код класса от вашего учителя.</div>
+                    <div id="role-hint-teacher" class="role-hint hidden">Создайте класс — придумайте код и поделитесь с учениками.</div>
+                    <div class="field">
+                        <label>Имя</label>
+                        <input type="text" id="login-name" placeholder="Как вас зовут?" maxlength="30" autocomplete="off">
+                    </div>
+                    <div id="teacher-code-group" class="field hidden">
+                        <label>Код класса</label>
+                        <div class="field-row">
+                            <input type="text" id="teacher-code" placeholder="Например: rus2026" maxlength="12" autocomplete="off">
+                            <button type="button" id="btn-gen-code" class="btn-icon" title="Сгенерировать">⚡</button>
+                        </div>
+                        <span class="field-hint">Придумайте или сгенерируйте, затем сообщите ученикам</span>
+                    </div>
+                    <div id="student-code-group" class="field">
+                        <label>Код класса</label>
+                        <input type="text" id="student-code" placeholder="Код от учителя" maxlength="12" autocomplete="off">
+                        <span class="field-hint">Получите код у вашего учителя</span>
+                    </div>
+                </div>
+                <button id="btn-login" class="btn btn-glow btn-block">Войти</button>
+                <div id="login-error" class="error-msg hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== STUDENT APP ===== -->
+    <div id="screen-app" class="screen">
+        <header class="topbar glass">
+            <div class="topbar-brand">EGE <span class="accent">Quest</span></div>
+            <div class="topbar-stats">
+                <div class="chip"><span class="chip-icon">⚡</span><span id="tb-points">0</span></div>
+                <div class="chip"><span class="chip-icon">🔥</span><span id="tb-streak">0</span></div>
+                <div class="chip chip-level">Ур.<span id="tb-level">1</span></div>
+            </div>
+            <div class="topbar-right">
+                <span id="tb-name" class="topbar-user"></span>
+                <button id="btn-theme" class="btn btn-sm btn-ghost" title="Сменить тему">🌙</button>
+                <button id="btn-logout" class="btn btn-sm btn-ghost">Выход</button>
+            </div>
+        </header>
+        <nav class="sidebar">
+            <button class="nav-btn active" data-view="dashboard"><span class="nav-ico">🏠</span><span class="nav-lbl">Главная</span></button>
+            <button class="nav-btn" data-view="tasks"><span class="nav-ico">📝</span><span class="nav-lbl">Задания</span></button>
+            <button class="nav-btn" data-view="test"><span class="nav-ico">📄</span><span class="nav-lbl">Тесты</span></button>
+            <button class="nav-btn" data-view="flashcards"><span class="nav-ico">🃏</span><span class="nav-lbl">Карточки</span></button>
+            <button class="nav-btn" data-view="stats"><span class="nav-ico">📊</span><span class="nav-lbl">Статистика</span></button>
+            <button class="nav-btn" data-view="shop"><span class="nav-ico">🛒</span><span class="nav-lbl">Магазин</span></button>
+            <button class="nav-btn" data-view="achievements"><span class="nav-ico">🏅</span><span class="nav-lbl">Награды</span></button>
+        </nav>
+        <main class="main">
+            <!-- DASHBOARD -->
+            <section id="view-dashboard" class="view active">
+                <div class="dash-grid">
+                    <div class="dash-character glass">
+                        <h2 class="sec-title">Мой персонаж</h2>
+                        <div class="character-stage" id="character-stage">
+                            <canvas id="char-canvas" width="300" height="480"></canvas>
+                        </div>
+                        <div class="char-info">
+                            <div id="char-name-display" class="char-name-text"></div>
+                            <div class="level-row">
+                                <span>Уровень <strong id="dash-level">1</strong></span>
+                                <div class="xp-track"><div id="xp-fill" class="xp-fill"></div></div>
+                                <span class="xp-nums"><span id="xp-cur">0</span>/<span id="xp-max">100</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dash-right">
+                        <div class="glass streak-card">
+                            <div class="streak-header">
+                                <span class="streak-fire">🔥</span>
+                                <div>
+                                    <div class="streak-title">Серия входов</div>
+                                    <div class="streak-days"><span id="login-streak">0</span> дн. подряд</div>
+                                </div>
+                                <div class="streak-bonus" id="streak-bonus"></div>
+                            </div>
+                            <div class="streak-dots" id="streak-dots"></div>
+                        </div>
+                        <div class="glass daily-card">
+                            <h3>📋 Ежедневный квест</h3>
+                            <p id="daily-text" class="daily-text">—</p>
+                            <div class="daily-bar-wrap">
+                                <div class="daily-bar"><div id="daily-fill" class="daily-fill"></div></div>
+                                <span id="daily-nums" class="daily-nums">0/5</span>
+                            </div>
+                            <div class="daily-reward">Награда: <span id="daily-reward-val">+50 ⚡</span></div>
+                        </div>
+                        <div class="glass quick-card">
+                            <h3>Быстрый старт</h3>
+                            <button id="btn-random" class="btn btn-glow btn-block">Случайное задание</button>
+                            <button id="btn-weak" class="btn btn-block btn-outline">Слабые места</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TASKS -->
+            <section id="view-tasks" class="view">
+                <h2 class="sec-title">Задания ЕГЭ · Русский язык</h2>
+                <div id="tasks-grid" class="tasks-grid"></div>
+            </section>
+
+            <!-- PRACTICE -->
+            <section id="view-practice" class="view">
+                <div class="pract-wrap">
+                    <div class="pract-head">
+                        <button id="btn-back" class="btn btn-sm btn-ghost">← Назад</button>
+                        <div class="pract-info">
+                            <span id="pract-title"></span>
+                            <span id="pract-progress" class="pract-counter"></span>
+                        </div>
+                        <div class="pract-timer"><span id="timer-val">00:00</span></div>
+                    </div>
+                    <div class="pract-bar"><div id="pract-bar-fill" class="pract-bar-fill"></div></div>
+                    <div id="pract-question" class="glass pract-question"></div>
+                    <div id="pract-input-area" class="pract-input-area">
+                        <input type="text" id="answer-input" placeholder="Введите ответ..." autocomplete="off">
+                        <button id="btn-check" class="btn btn-glow">Проверить</button>
+                    </div>
+                    <div id="pract-options" class="pract-options hidden"></div>
+                    <div id="pract-feedback" class="pract-feedback hidden">
+                        <div class="fb-icon"></div>
+                        <div class="fb-text"></div>
+                        <div class="fb-explain"></div>
+                        <button id="btn-next" class="btn btn-glow">Далее →</button>
+                    </div>
+                    <div id="combo-popup" class="combo-popup hidden"></div>
+                </div>
+            </section>
+
+            <!-- RESULTS -->
+            <section id="view-results" class="view">
+                <div class="results-card glass">
+                    <div id="res-emoji" class="res-emoji">🎉</div>
+                    <h2 id="res-title">Отличная работа!</h2>
+                    <div class="res-grid">
+                        <div class="res-stat"><div id="res-correct" class="res-val">0</div><div class="res-label">Верно</div></div>
+                        <div class="res-stat"><div id="res-total" class="res-val">0</div><div class="res-label">Всего</div></div>
+                        <div class="res-stat"><div id="res-pct" class="res-val">0%</div><div class="res-label">Точность</div></div>
+                        <div class="res-stat"><div id="res-pts" class="res-val">0</div><div class="res-label">Очков</div></div>
+                    </div>
+                    <div class="res-xp">+<span id="res-xp">0</span> XP</div>
+                    <div id="res-levelup" class="res-levelup hidden">🎊 Новый уровень: <strong id="res-newlvl">2</strong></div>
+                    <div class="res-actions">
+                        <button id="btn-retry" class="btn btn-glow">Ещё раз</button>
+                        <button id="btn-go-tasks" class="btn btn-outline">К заданиям</button>
+                        <button id="btn-go-home" class="btn btn-ghost">Главная</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- STATS -->
+            <section id="view-stats" class="view">
+                <h2 class="sec-title">Статистика</h2>
+                <div class="period-row">
+                    <button class="period-btn active" data-period="week">Неделя</button>
+                    <button class="period-btn" data-period="month">Месяц</button>
+                    <button class="period-btn" data-period="all">Всё время</button>
+                </div>
+                <div class="stats-grid">
+                    <div class="glass stats-overview">
+                        <div class="so-row">
+                            <div class="so-item"><div id="so-solved" class="so-val">0</div><div class="so-lbl">Решено</div></div>
+                            <div class="so-item"><div id="so-acc" class="so-val">0%</div><div class="so-lbl">Точность</div></div>
+                            <div class="so-item"><div id="so-pts" class="so-val">0</div><div class="so-lbl">Очков</div></div>
+                            <div class="so-item"><div id="so-streak" class="so-val">0</div><div class="so-lbl">Лучшая серия</div></div>
+                        </div>
+                    </div>
+                    <div class="glass"><h3>Активность</h3><canvas id="chart-activity" height="220"></canvas></div>
+                    <div class="glass"><h3>По заданиям</h3><div id="stats-bytask"></div></div>
+                    <div class="glass"><h3>Сессии</h3><div id="stats-sessions"></div></div>
+                </div>
+            </section>
+
+            <!-- SHOP -->
+            <section id="view-shop" class="view">
+                <h2 class="sec-title">Магазин</h2>
+                <div class="shop-bal">Баланс: <span id="shop-bal" class="accent">0</span> ⚡</div>
+                <div class="shop-tabs">
+                    <button class="stab active" data-cat="clothing">👕 Одежда</button>
+                    <button class="stab" data-cat="accessories">🎒 Аксессуары</button>
+                    <button class="stab" data-cat="hairstyles">💇 Причёски</button>
+                    <button class="stab" data-cat="backgrounds">🌃 Фоны</button>
+                </div>
+                <div id="shop-grid" class="shop-grid"></div>
+            </section>
+
+            <!-- ACHIEVEMENTS -->
+            <section id="view-achievements" class="view">
+                <h2 class="sec-title">Награды и достижения</h2>
+                <div id="ach-grid" class="ach-grid"></div>
+            </section>
+
+            <!-- FLASHCARDS -->
+            <section id="view-flashcards" class="view">
+                <h2 class="sec-title">Карточки</h2>
+
+                <!-- HUB: выбор темы -->
+                <div id="fc-hub" class="fc-hub">
+                    <div class="fc-set-card" id="fc-set-orth">
+                        <div class="fc-set-icon">🎯</div>
+                        <div class="fc-set-info">
+                            <div class="fc-set-title">Ударения</div>
+                            <div class="fc-set-desc">Орфоэпия · Задание 4 ЕГЭ</div>
+                            <div class="fc-set-count" id="fc-set-total">50 карточек</div>
+                        </div>
+                        <div class="fc-set-arrow">→</div>
+                    </div>
+                    <div class="fc-set-card" id="fc-set-abbr">
+                        <div class="fc-set-icon">📝</div>
+                        <div class="fc-set-info">
+                            <div class="fc-set-title">Аббревиатуры</div>
+                            <div class="fc-set-desc">Расшифровки · Задание 8 ЕГЭ</div>
+                            <div class="fc-set-count" id="fc-set-abbr-total">— карточек</div>
+                        </div>
+                        <div class="fc-set-arrow">→</div>
+                    </div>
+                    <div class="fc-set-card" id="fc-set-spraw">
+                        <div class="fc-set-icon">✍️</div>
+                        <div class="fc-set-info">
+                            <div class="fc-set-title">Правописание наречий</div>
+                            <div class="fc-set-desc">Слитно / раздельно · Задание 15 ЕГЭ</div>
+                            <div class="fc-set-count" id="fc-set-spraw-total">— карточек</div>
+                        </div>
+                        <div class="fc-set-arrow">→</div>
+                    </div>
+                </div>
+
+                <!-- TRAINING: тренировка -->
+                <div id="fc-training" class="hidden">
+                    <div class="fc-training-head">
+                        <button id="btn-fc-back" class="btn btn-sm btn-ghost">← Назад</button>
+                        <span class="fc-set-label" id="fc-set-label">Ударения</span>
+                    </div>
+                    <div class="fc-wrap">
+                        <div class="fc-progress-row">
+                            <span id="fc-counter" class="fc-counter-txt">1 / 10</span>
+                            <div class="fc-bar"><div id="fc-bar-fill" class="fc-bar-fill"></div></div>
+                            <div class="fc-score">
+                                <span class="fc-score-known">✓ <span id="fc-known">0</span></span>
+                                <span class="fc-score-unknown">✗ <span id="fc-unknown">0</span></span>
+                            </div>
+                        </div>
+                        <div class="fc-scene" id="fc-scene">
+                            <div class="fc-half fc-half-no" id="fc-half-no">✗</div>
+                            <div class="fc-half fc-half-yes" id="fc-half-yes">✓</div>
+                            <div class="fc-card" id="fc-card">
+                                <div class="fc-face fc-front">
+                                    <div class="fc-face-label" id="fc-front-label">Слово</div>
+                                    <div class="fc-face-text" id="fc-front-text"></div>
+                                    <div class="fc-face-hint">нажмите, чтобы перевернуть</div>
+                                </div>
+                                <div class="fc-face fc-back">
+                                    <div class="fc-face-label" id="fc-back-label">Правильное ударение</div>
+                                    <div class="fc-face-text" id="fc-back-text"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="fc-controls" id="fc-controls">
+                            <button id="btn-fc-flip" class="btn btn-outline btn-lg">Перевернуть</button>
+                        </div>
+                        <div id="fc-hint" class="fc-hint"></div>
+                        <div class="fc-finish hidden" id="fc-finish">
+                            <div class="fc-finish-icon">🎉</div>
+                            <h3 class="fc-finish-title">Набор завершён!</h3>
+                            <div class="fc-finish-stats">Знаю: <strong id="fc-fin-known">0</strong> · Не знаю: <strong id="fc-fin-unknown">0</strong></div>
+                            <button id="btn-fc-restart" class="btn btn-glow btn-lg">Начать заново</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VARIANT (scroll-based) -->
+            <section id="view-variant" class="view">
+                <div class="variant-wrap" id="variant-wrap">
+                    <div class="variant-head">
+                        <button id="btn-variant-back" class="btn btn-sm btn-ghost">← Назад</button>
+                        <div class="variant-title" id="variant-title">Индивидуальный вариант</div>
+                        <div id="variant-counter" class="variant-counter"></div>
+                        <div id="variant-timer" class="vt-timer hidden">
+                            <span class="vt-item"><span>⏱</span><span id="vt-elapsed">0:00:00</span></span>
+                            <span class="vt-sep">·</span>
+                            <span class="vt-item"><span>⏳</span><span id="vt-remaining" class="vt-remaining">3:30:00</span></span>
+                        </div>
+                    </div>
+                    <div class="variant-layout">
+                        <div class="variant-main">
+                            <div id="variant-questions" class="variant-questions"></div>
+                            <div class="variant-footer">
+                                <div id="variant-summary" class="variant-summary hidden"></div>
+                                <button id="btn-finish-variant" class="btn btn-glow btn-lg">Проверить вариант</button>
+                            </div>
+                        </div>
+                        <div id="variant-side" class="variant-side hidden">
+                            <div class="vside-head">Результаты</div>
+                            <div id="variant-side-table" class="vside-table"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TEST BUILDER -->
+            <section id="view-test" class="view">
+                <h2 class="sec-title">Конструктор варианта</h2>
+                <div class="glass fv-card">
+                    <div class="fv-card-inner">
+                        <div class="fv-card-title">📋 Полный вариант ЕГЭ</div>
+                        <button id="btn-full-variant" class="btn btn-glow btn-lg">⚡ Сгенерировать</button>
+                    </div>
+                </div>
+                <div class="glass test-builder">
+                    <p class="tb-hint">Выберите количество заданий каждого типа и нажмите «Составить вариант».</p>
+                    <div id="tb-rows" class="tb-rows"></div>
+                    <div class="tb-footer">
+                        <div class="tb-total">Итого: <span id="tb-total-val">0</span> заданий</div>
+                        <div class="tb-format">
+                            <span class="tb-format-lbl">Формат ответа:</span>
+                            <label class="tb-radio"><input type="radio" name="tb-fmt" value="text" checked> текстовый</label>
+                            <label class="tb-radio"><input type="radio" name="tb-fmt" value="multi"> с вариантами</label>
+                        </div>
+                        <button id="btn-compile" class="btn btn-glow btn-lg" disabled>Составить вариант</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ===== TEACHER ===== -->
+    <div id="screen-teacher" class="screen">
+        <header class="topbar glass topbar-teacher">
+            <div class="topbar-brand">EGE <span class="accent">Quest</span> · Учитель</div>
+            <div class="topbar-right">
+                <span class="topbar-code">Код: <strong id="t-code"></strong></span>
+                <span id="t-name" class="topbar-user"></span>
+                <button id="btn-theme-t" class="btn btn-sm btn-ghost" title="Сменить тему">🌙</button>
+                <button id="btn-t-logout" class="btn btn-sm btn-ghost">Выход</button>
+            </div>
+        </header>
+        <main class="teacher-main">
+            <div class="glass t-overview">
+                <h2>Обзор класса</h2>
+                <div class="so-row">
+                    <div class="so-item"><div id="ts-count" class="so-val">0</div><div class="so-lbl">Учеников</div></div>
+                    <div class="so-item"><div id="ts-today" class="so-val">0</div><div class="so-lbl">Сессий сегодня</div></div>
+                    <div class="so-item"><div id="ts-acc" class="so-val">—</div><div class="so-lbl">Ср. точность</div></div>
+                </div>
+            </div>
+            <div class="glass t-students">
+                <h2>Ученики</h2>
+                <div id="t-students-list"></div>
+            </div>
+            <div class="glass t-detail hidden" id="t-detail">
+                <button id="btn-t-back" class="btn btn-sm btn-ghost">← К списку</button>
+                <h2 id="td-name"></h2>
+                <div id="td-stats" class="so-row"></div>
+                <h3>Активность</h3>
+                <canvas id="td-chart" height="200"></canvas>
+                <div id="td-tasks"></div>
+                <h3>Сессии</h3>
+                <div id="td-sessions"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- TASK CONFIG MODAL -->
+    <div id="modal-config" class="modal hidden">
+        <div class="modal-bg"></div>
+        <div class="modal-box glass">
+            <h2 id="mc-title"></h2>
+            <p id="mc-desc" class="mc-desc"></p>
+            <div class="mc-difficulty" id="mc-diff"></div>
+            <div class="mc-qty">
+                <label>Количество:</label>
+                <div class="qty-pills">
+                    <button class="pill" data-q="5">5</button>
+                    <button class="pill active" data-q="10">10</button>
+                    <button class="pill" data-q="15">15</button>
+                    <button class="pill" data-q="20">20</button>
+                </div>
+            </div>
+            <div class="mc-info">За верный ответ: <span id="mc-pts" class="accent"></span></div>
+            <div class="mc-actions">
+                <button id="btn-start" class="btn btn-glow btn-lg">Начать</button>
+                <button id="btn-cancel" class="btn btn-ghost">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LEVEL UP MODAL -->
+    <div id="modal-lvl" class="modal hidden">
+        <div class="modal-bg"></div>
+        <div class="modal-box glass modal-lvl">
+            <div class="lvl-icon">⚡</div>
+            <h2>Новый уровень!</h2>
+            <div id="lvl-num" class="lvl-num"></div>
+            <div id="lvl-reward" class="lvl-reward"></div>
+            <button id="btn-close-lvl" class="btn btn-glow">Отлично!</button>
+        </div>
+    </div>
+
+    <!-- STREAK MODAL (shown on login) -->
+    <div id="modal-streak" class="modal hidden">
+        <div class="modal-bg"></div>
+        <div class="modal-box glass modal-streak">
+            <div class="streak-modal-fire">🔥</div>
+            <h2 id="streak-modal-title"></h2>
+            <p id="streak-modal-text"></p>
+            <div id="streak-modal-bonus" class="streak-modal-bonus"></div>
+            <button id="btn-close-streak" class="btn btn-glow">Круто!</button>
+        </div>
+    </div>
+
+    <!-- FLASHCARD QTY MODAL -->
+    <div id="modal-fc-qty" class="modal hidden">
+        <div class="modal-bg"></div>
+        <div class="modal-box glass">
+            <h2>🎯 Ударения</h2>
+            <p class="mc-desc">Выберите количество карточек</p>
+            <div class="mc-qty">
+                <div class="qty-pills">
+                    <button class="fc-qty-pill" data-q="5">5</button>
+                    <button class="fc-qty-pill active" data-q="10">10</button>
+                    <button class="fc-qty-pill" data-q="15">15</button>
+                    <button class="fc-qty-pill" data-q="20">20</button>
+                </div>
+            </div>
+            <div class="mc-actions">
+                <button id="btn-fc-start" class="btn btn-glow btn-lg">Начать</button>
+                <button id="btn-fc-cancel" class="btn btn-ghost">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="float-pts"></div>
+
+    <script src="js/data.js"></script>
+    <script src="js/sounds.js"></script>
+    <script src="js/character.js"></script>
+    <script type="module" src="./js/app.js"></script>
+</body>
+</html>
