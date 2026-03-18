@@ -6,6 +6,12 @@
       "runtimeExecutable": "/usr/local/bin/node",
       "runtimeArgs": ["node_modules/.bin/vite", "--port", "5173"],
       "port": 5173
+    },
+    {
+      "name": "ege-site-preview",
+      "runtimeExecutable": "/usr/local/bin/node",
+      "runtimeArgs": ["/Users/maksimveretennikov/Desktop/ege-site/node_modules/.bin/vite", "preview", "--port", "4173"],
+      "port": 4173
     }
   ]
 }
