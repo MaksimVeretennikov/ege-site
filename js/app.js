@@ -10,6 +10,21 @@ let state = { user: null, session: null, timer: null, timerSec: 0, variant: null
 
 /* ===== BOOT ===== */
 document.addEventListener('DOMContentLoaded', async () => {
+    const _missingGlobals = [];
+    if (typeof TASKS_META === 'undefined' || typeof QUESTIONS === 'undefined')
+        _missingGlobals.push('data.js (TASKS_META / QUESTIONS)');
+    if (typeof CharRenderer === 'undefined')
+        _missingGlobals.push('character.js (CharRenderer)');
+    if (typeof SoundEngine === 'undefined')
+        _missingGlobals.push('sounds.js (SoundEngine)');
+    if (_missingGlobals.length) {
+        console.error('[App] CRITICAL: failed to load global scripts:', _missingGlobals.join(', '));
+        console.error('[App] Tasks, tests and character will not render. Check /js/ 404s in the Network tab.');
+        setTimeout(() => document.getElementById('preloader').classList.add('done'), 1500);
+        initTheme(); initLogin();
+        return;
+    }
+
     setTimeout(() => document.getElementById('preloader').classList.add('done'), 1500);
     initTheme(); initLogin(); initNav(); initModals(); initPractice(); initShop(); initStats(); initFlashcards();
     const session = await restoreSession();
