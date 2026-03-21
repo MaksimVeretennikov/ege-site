@@ -3221,6 +3221,16 @@ const QUESTIONS = {
     ],
 };
 
+// Fallback-генерация question id для всех вопросов в QUESTIONS.
+// Формат: Q_<taskNumber>_<1-based index внутри задания>.
+// Если у вопроса позднее будет явный id (из РешуЕГЭ / ФИПИ) — он НЕ перезаписывается,
+// т.к. используется оператор ??= (присваивает только если значение nullish).
+Object.entries(QUESTIONS).forEach(([taskNumber, items]) => {
+    items.forEach((q, index) => {
+        q.id ??= `Q_${taskNumber}_${index + 1}`;
+    });
+});
+
 /* ===== SHOP DATA ===== */
 const SHOP_DATA = {
     clothing: [

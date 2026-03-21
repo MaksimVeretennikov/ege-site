@@ -1306,7 +1306,7 @@ function normalizeSessionItem({ idx, taskId, taskTitle, q, userAnswer, correctAn
         taskId: taskId ?? null,
         taskTitle: taskTitle ?? null,
         textId: q.text_id ?? null,
-        questionId: null,
+        questionId: q.id ?? null,
         qText: getQuestionTextSnippet(q),
         userAnswer: userAnswer ?? '—',
         correctAnswer: correctAnswer ?? '',
@@ -1326,6 +1326,7 @@ function normalizeLegacyItem(a, i) {
         correctAnswer: a.correctAnswer ?? a.correctDisplay ?? '—',
         correct: !!(a.correct ?? a.isCorrect),
         explanation: a.explanation || '',
+        questionId: a.questionId ?? null,
     };
 }
 
