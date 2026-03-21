@@ -438,7 +438,7 @@ body { font-family: var(--font); background: var(--bg-deep); color: var(--text);
 .sd-correct .sd-q-num { background: rgba(16,185,129,.15); color: var(--green); }
 .sd-wrong .sd-q-num { background: rgba(239,68,68,.15); color: var(--red); }
 .sd-q-body { flex: 1; min-width: 0; }
-.sd-q-text { font-size: 13px; color: var(--text-dim); margin-bottom: 6px; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sd-q-text { font-size: 13px; color: var(--text-dim); margin-bottom: 6px; line-height: 1.4; white-space: pre-line; }
 .sd-task-label { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; letter-spacing: .3px; }
 .sd-q-result { display: flex; align-items: center; gap: 10px; font-size: 13px; flex-wrap: wrap; }
 .sd-q-result strong { color: var(--text); }

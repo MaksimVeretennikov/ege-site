@@ -851,7 +851,7 @@ function showSessionDetail(s) {
         const taskLabel = norm.taskId
             ? `<div class="sd-task-label">Задание ${norm.taskId}${norm.taskTitle ? ' · ' + norm.taskTitle : ''}</div>`
             : '';
-        const qTextHtml = norm.qText ? `<div class="sd-q-text">${norm.qText.replace(/\n/g, ' ')}</div>` : '';
+        const qTextHtml = norm.qText ? `<div class="sd-q-text">${norm.qText.replace(/\n/g, '<br>')}</div>` : '';
         html += `<div class="sd-answer ${norm.correct ? 'sd-correct' : 'sd-wrong'}">
             <div class="sd-q-num">${i + 1}</div>
             <div class="sd-q-body">
@@ -862,7 +862,7 @@ function showSessionDetail(s) {
                     <span>Ваш ответ: <strong>${norm.userAnswer}</strong></span>
                     ${!norm.correct ? `<span class="sd-right-ans">Верно: <strong>${norm.correctAnswer}</strong></span>` : ''}
                 </div>
-                ${norm.explanation && !norm.correct ? `<div class="sd-explain">${norm.explanation}</div>` : ''}
+                ${norm.explanation && !norm.correct ? `<div class="sd-explain">${norm.explanation.replace(/\n/g, '<br>')}</div>` : ''}
             </div>
         </div>`;
     });
@@ -1296,7 +1296,7 @@ function findItem(id) { for (const cat of Object.values(SHOP_DATA)) { const i = 
 
 /** Безопасный сниппет текста вопроса — только q.text, без полного passage */
 function getQuestionTextSnippet(q) {
-    return (q.text || '').substring(0, 120);
+    return q.text || '';
 }
 
 /** Единый формат session item для всех режимов (task / mixed / exam) */
