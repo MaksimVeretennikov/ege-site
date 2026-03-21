@@ -829,7 +829,7 @@ function renderSessions(sessions) {
         const hasAnswers = s.items && s.items.length > 0;
         const sessLabel = buildSessionLabel(s);
         const taskNums = s.meta?.task_numbers;
-        const subLabel = (s.mode !== 'task' && taskNums?.length) ? taskNums.join(', ') : '';
+        const subLabel = (s.mode === 'mixed' && taskNums?.length) ? taskNums.join(', ') : '';
         const row = document.createElement('div');
         row.className = `sess-row ${hasAnswers ? 'clickable' : ''}`;
         row.innerHTML = `<div><div class="sess-task">${sessLabel}</div><div class="sess-date">${subLabel ? subLabel + ' · ' : ''}${d}</div></div><div><div class="sess-result ${cls}">${s.correct}/${s.total} (${s.accuracy}%)</div><div class="sess-date">${hasAnswers ? '👁 подробнее' : `+${s.pointsEarned} ⚡`}</div></div>`;
@@ -848,10 +848,15 @@ function showSessionDetail(s) {
     html += '<div class="sd-answers">';
     (s.items || []).forEach((a, i) => {
         const norm = normalizeLegacyItem(a, i);
+        const taskLabel = norm.taskId
+            ? `<div class="sd-task-label">Задание ${norm.taskId}${norm.taskTitle ? ' · ' + norm.taskTitle : ''}</div>`
+            : '';
+        const qTextHtml = norm.qText ? `<div class="sd-q-text">${norm.qText.replace(/\n/g, ' ')}</div>` : '';
         html += `<div class="sd-answer ${norm.correct ? 'sd-correct' : 'sd-wrong'}">
-            <div class="sd-q-num">${i + 1}${norm.taskId ? ` <span class="sd-task-badge">Зад. ${norm.taskId}</span>` : ''}</div>
+            <div class="sd-q-num">${i + 1}</div>
             <div class="sd-q-body">
-                <div class="sd-q-text">${(norm.qText || '').replace(/\n/g, ' ')}</div>
+                ${taskLabel}
+                ${qTextHtml}
                 <div class="sd-q-result">
                     ${norm.correct ? '✅' : '❌'}
                     <span>Ваш ответ: <strong>${norm.userAnswer}</strong></span>
