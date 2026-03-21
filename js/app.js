@@ -541,10 +541,18 @@ function processAns(isCorrect, q) {
         SoundEngine.wrong(); u.streak = 0; s.wrong++;
         showFB(false, q, 0);
     }
-    const userAns = isCorrect
-        ? correctAnswerDisplay
-        : ($('answer-input').value.trim() || [...(s.selected||[])].sort((a,b)=>a-b).map(i=>i+1).join('') || '—');
-    s.answers.push({ idx: s.idx, correct: isCorrect, time: t, qText: q.text.substring(0, 120), correctAnswer: correctAnswerDisplay, userAnswer: userAns, explanation: q.explanation || '' });
+    const rawInput = $('answer-input').value.trim()
+        || [...(s.selected||[])].sort((a,b)=>a-b).map(i=>i+1).join('')
+        || '—';
+    s.answers.push(normalizeSessionItem({
+        idx: s.idx,
+        taskId: s.taskId,
+        taskTitle: s.task.title,
+        q,
+        userAnswer: rawInput,
+        correctAnswer: correctAnswerDisplay,
+        correct: isCorrect,
+    }));
     $('tb-streak').textContent = u.streak;
 }
 
@@ -603,10 +611,11 @@ async function endSession(cancel) {
         xp_earned: s.xpE,
         items: s.answers,
         meta: {
-            session_type: s.sessionType || 'task',
-            source: 'tasks',
+            schema_version: 2,
+            session_type: 'task',
+            source: 'practice',
             task_numbers: [s.taskId],
-            selection_summary: `Задание ${s.taskId}: ${s.task.title} (${s.total} вопр.)`,
+            label: `Задание ${s.taskId} · ${s.task.title}`,
         },
     });
     let lvlUp = false, newLvl = u.level;
@@ -739,8 +748,9 @@ async function renderStats(period = 'week') {
     const u = state.user; if (!u) return;
     const { sessions } = await listMyPracticeSessions(200);
     const mapped = sessions.map(s => ({
-        taskId: s.meta?.task_numbers?.[0] ?? null,
-        taskTitle: s.meta?.selection_summary ?? '',
+        id: s.id,
+        mode: s.mode || 'task',
+        meta: s.meta || {},
         date: s.created_at,
         total: s.total_questions,
         correct: s.correct_answers_count,
@@ -748,8 +758,8 @@ async function renderStats(period = 'week') {
         pointsEarned: s.points_earned,
         xpEarned: s.xp_earned,
         duration: s.duration_sec,
-        answers: s.items || [],
-        mode: s.mode || 'task',
+        items: s.items || [],
+        taskId: s.meta?.task_numbers?.[0] ?? null, // legacy compat для buildSessionLabel
     }));
     const start = period === 'week' ? daysAgo(7) : period === 'month' ? daysAgo(30) : new Date(0);
     const filt = mapped.filter(s => new Date(s.date) >= start);
@@ -800,8 +810,7 @@ function drawChart(id, sessions, period) {
 
 function renderTaskStats(sessions) {
     const c = $('stats-bytask'); c.innerHTML = '';
-    const agg = {};
-    sessions.forEach(s => { if (!agg[s.taskId]) agg[s.taskId] = { solved: 0, correct: 0 }; agg[s.taskId].solved += s.total; agg[s.taskId].correct += s.correct; });
+    const agg = aggregateStatsByTask(sessions);
     TASKS_META.forEach(t => {
         const a = agg[t.id]; if (!a) return;
         const acc = a.solved > 0 ? Math.round(a.correct / a.solved * 100) : 0;
@@ -814,17 +823,16 @@ function renderTaskStats(sessions) {
 function renderSessions(sessions) {
     const c = $('stats-sessions'); c.innerHTML = '';
     const sorted = [...sessions].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 40);
-    const MODE_LABEL = { task: 'Задание', mixed: 'Тест', exam: 'Полный вариант' };
     sorted.forEach((s, i) => {
         const d = new Date(s.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
         const cls = s.accuracy >= 80 ? 'good' : s.accuracy >= 50 ? 'ok' : 'bad';
-        const hasAnswers = s.answers && s.answers.length > 0;
-        const sessLabel = s.mode === 'task'
-            ? `Зад. ${s.taskId}: ${s.taskTitle}`
-            : `${MODE_LABEL[s.mode] || s.mode} · ${s.taskTitle}`;
+        const hasAnswers = s.items && s.items.length > 0;
+        const sessLabel = buildSessionLabel(s);
+        const taskNums = s.meta?.task_numbers;
+        const subLabel = (s.mode !== 'task' && taskNums?.length) ? taskNums.join(', ') : '';
         const row = document.createElement('div');
         row.className = `sess-row ${hasAnswers ? 'clickable' : ''}`;
-        row.innerHTML = `<div><div class="sess-task">${sessLabel}</div><div class="sess-date">${d}</div></div><div><div class="sess-result ${cls}">${s.correct}/${s.total} (${s.accuracy}%)</div><div class="sess-date">${hasAnswers ? '👁 подробнее' : `+${s.pointsEarned} ⚡`}</div></div>`;
+        row.innerHTML = `<div><div class="sess-task">${sessLabel}</div><div class="sess-date">${subLabel ? subLabel + ' · ' : ''}${d}</div></div><div><div class="sess-result ${cls}">${s.correct}/${s.total} (${s.accuracy}%)</div><div class="sess-date">${hasAnswers ? '👁 подробнее' : `+${s.pointsEarned} ⚡`}</div></div>`;
         if (hasAnswers) row.addEventListener('click', () => showSessionDetail(s));
         c.appendChild(row);
     });
@@ -834,21 +842,22 @@ function renderSessions(sessions) {
 function showSessionDetail(s) {
     const d = new Date(s.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
     const dur = s.duration ? `${Math.floor(s.duration/60)}:${String(s.duration%60).padStart(2,'0')}` : '—';
-    let html = `<div class="sd-head"><button class="btn btn-sm btn-ghost" id="btn-sd-close">← Назад</button><h3>Задание ${s.taskId}: ${s.taskTitle}</h3></div>`;
+    const label = buildSessionLabel(s);
+    let html = `<div class="sd-head"><button class="btn btn-sm btn-ghost" id="btn-sd-close">← Назад</button><h3>${label}</h3></div>`;
     html += `<div class="sd-summary"><span>${d}</span><span>${s.correct}/${s.total} верно (${s.accuracy}%)</span><span>⏱ ${dur}</span><span>+${s.pointsEarned} ⚡</span></div>`;
     html += '<div class="sd-answers">';
-    (s.answers || []).forEach((a, i) => {
-        const cls = a.correct ? 'sd-correct' : 'sd-wrong';
-        html += `<div class="sd-answer ${cls}">
-            <div class="sd-q-num">${i + 1}</div>
+    (s.items || []).forEach((a, i) => {
+        const norm = normalizeLegacyItem(a, i);
+        html += `<div class="sd-answer ${norm.correct ? 'sd-correct' : 'sd-wrong'}">
+            <div class="sd-q-num">${i + 1}${norm.taskId ? ` <span class="sd-task-badge">Зад. ${norm.taskId}</span>` : ''}</div>
             <div class="sd-q-body">
-                <div class="sd-q-text">${(a.qText || '').replace(/\n/g, ' ')}</div>
+                <div class="sd-q-text">${(norm.qText || '').replace(/\n/g, ' ')}</div>
                 <div class="sd-q-result">
-                    ${a.correct ? '✅' : '❌'}
-                    <span>Ваш ответ: <strong>${a.userAnswer || '—'}</strong></span>
-                    ${!a.correct ? `<span class="sd-right-ans">Верно: <strong>${a.correctAnswer}</strong></span>` : ''}
+                    ${norm.correct ? '✅' : '❌'}
+                    <span>Ваш ответ: <strong>${norm.userAnswer}</strong></span>
+                    ${!norm.correct ? `<span class="sd-right-ans">Верно: <strong>${norm.correctAnswer}</strong></span>` : ''}
                 </div>
-                ${a.explanation && !a.correct ? `<div class="sd-explain">${a.explanation}</div>` : ''}
+                ${norm.explanation && !norm.correct ? `<div class="sd-explain">${norm.explanation}</div>` : ''}
             </div>
         </div>`;
     });
@@ -1145,7 +1154,15 @@ function finishVariant() {
         if (isCorrect) correct++;
         const correctDisplay = Array.isArray(q.answer) ? q.answer.join(' / ') : String(q.answer);
         const userDisplay = rawAns !== undefined && String(rawAns) ? String(rawAns) : '—';
-        results.push({ taskId: item.taskId, isCorrect, userDisplay, correctDisplay });
+        results.push(normalizeSessionItem({
+            idx,
+            taskId: item.taskId,
+            taskTitle: item.taskTitle,
+            q,
+            userAnswer: userDisplay,
+            correctAnswer: correctDisplay,
+            correct: isCorrect,
+        }));
 
         block.classList.add(isCorrect ? 'vq-correct' : 'vq-wrong');
 
@@ -1202,12 +1219,11 @@ function finishVariant() {
             xp_earned: 0,
             items: results,
             meta: {
+                schema_version: 2,
                 session_type: v.sessionType || 'mixed',
                 source: v.sessionType === 'exam' ? 'full-variant' : 'test-builder',
                 task_numbers: taskNumbers,
-                selection_summary: v.sessionType === 'exam'
-                    ? `Полный вариант ЕГЭ (${total} заданий)`
-                    : `Тест из конструктора (${total} заданий)`,
+                label: v.sessionType === 'exam' ? 'Полный вариант' : 'Собранный вариант',
             },
         });
     }
@@ -1216,11 +1232,11 @@ function finishVariant() {
     const sideTable = $('variant-side-table');
     sideTable.innerHTML = `<div class="vside-col-hd">
         <span></span><span>Зад.</span><span>Ваш</span><span>Верно</span>
-    </div>` + results.map(r => `<div class="vside-row ${r.isCorrect ? 'vs-correct' : 'vs-wrong'}">
-        <span>${r.isCorrect ? '✅' : '❌'}</span>
+    </div>` + results.map(r => `<div class="vside-row ${r.correct ? 'vs-correct' : 'vs-wrong'}">
+        <span>${r.correct ? '✅' : '❌'}</span>
         <span class="vside-task">${r.taskId}</span>
-        <span class="vside-ans ${r.isCorrect ? 'correct' : 'wrong'}">${r.userDisplay}</span>
-        <span class="vside-ans correct">${r.correctDisplay}</span>
+        <span class="vside-ans ${r.correct ? 'correct' : 'wrong'}">${r.userAnswer}</span>
+        <span class="vside-ans correct">${r.correctAnswer}</span>
     </div>`).join('') + `<div class="vside-summary">
         <span></span>
         <span class="vside-summary-label">Итого</span>
@@ -1270,6 +1286,86 @@ function weakest() {
     return worst;
 }
 function findItem(id) { for (const cat of Object.values(SHOP_DATA)) { const i = cat.find(x => x.id === id); if (i) return i; } return null; }
+
+/* ===== SESSION HELPERS ===== */
+
+/** Безопасный сниппет текста вопроса — только q.text, без полного passage */
+function getQuestionTextSnippet(q) {
+    return (q.text || '').substring(0, 120);
+}
+
+/** Единый формат session item для всех режимов (task / mixed / exam) */
+function normalizeSessionItem({ idx, taskId, taskTitle, q, userAnswer, correctAnswer, correct }) {
+    return {
+        idx,
+        taskId: taskId ?? null,
+        taskTitle: taskTitle ?? null,
+        textId: q.text_id ?? null,
+        questionId: null,
+        qText: getQuestionTextSnippet(q),
+        userAnswer: userAnswer ?? '—',
+        correctAnswer: correctAnswer ?? '',
+        correct: !!correct,
+        explanation: q.explanation || '',
+    };
+}
+
+/** Нормализует item любого legacy-формата для отображения */
+function normalizeLegacyItem(a, i) {
+    return {
+        idx: a.idx ?? i,
+        taskId: a.taskId ?? null,
+        taskTitle: a.taskTitle ?? null,
+        qText: a.qText || '',
+        userAnswer: a.userAnswer ?? a.userDisplay ?? '—',
+        correctAnswer: a.correctAnswer ?? a.correctDisplay ?? '—',
+        correct: !!(a.correct ?? a.isCorrect),
+        explanation: a.explanation || '',
+    };
+}
+
+/** Человекочитаемая подпись сессии */
+function buildSessionLabel(s) {
+    const meta = s.meta || {};
+    if (meta.label) return meta.label;
+    if (s.mode === 'exam') return 'Полный вариант';
+    if (s.mode === 'mixed') return 'Собранный вариант';
+    if (s.taskId) {
+        const t = (typeof TASKS_META !== 'undefined') ? TASKS_META.find(x => x.id === s.taskId) : null;
+        return `Задание ${s.taskId}${t ? ' · ' + t.title : ''}`;
+    }
+    return 'Практика';
+}
+
+/** Агрегация "По заданиям" по item.taskId.
+ *  Fallback: если items есть, но ни один item не содержит taskId
+ *  (legacy practice-сессии), используем session-level taskId + total/correct.
+ */
+function aggregateStatsByTask(sessions) {
+    const agg = {};
+    sessions.forEach(s => {
+        const items = s.items || [];
+        let usableItemCount = 0;
+        if (items.length > 0) {
+            items.forEach(a => {
+                const norm = normalizeLegacyItem(a, 0);
+                const tid = norm.taskId;
+                if (tid == null) return;
+                usableItemCount++;
+                if (!agg[tid]) agg[tid] = { solved: 0, correct: 0 };
+                agg[tid].solved++;
+                if (norm.correct) agg[tid].correct++;
+            });
+        }
+        // Fallback: нет items или ни один item не дал taskId
+        if (usableItemCount === 0 && s.taskId != null) {
+            if (!agg[s.taskId]) agg[s.taskId] = { solved: 0, correct: 0 };
+            agg[s.taskId].solved += s.total;
+            agg[s.taskId].correct += s.correct;
+        }
+    });
+    return agg;
+}
 
 /* ===== FLASHCARDS ===== */
 let fcQty = 10;
