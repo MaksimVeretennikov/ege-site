@@ -308,14 +308,12 @@ body { font-family: var(--font); background: var(--bg-deep); color: var(--text);
     border-radius: 10px; font-size: 15px; font-weight: 800; margin-bottom: 10px;
 }
 .task-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; line-height: 1.4; position: relative; z-index: 1; }
-.task-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); position: relative; z-index: 1; }
-.task-diff { color: var(--amber); }
-.task-solved-count { color: var(--green); font-weight: 600; }
-.task-bank { font-size: 11px; color: var(--text-muted); margin-top: 4px; position: relative; z-index: 1; }
-.task-acc-bar { margin-top: 8px; display: flex; align-items: center; gap: 6px; position: relative; z-index: 1; }
-.acc-track { flex: 1; height: 4px; background: var(--bg-deep); border-radius: 2px; overflow: hidden; }
-.acc-fill { height: 100%; border-radius: 2px; transition: width .5s; }
-.acc-val { font-size: 11px; font-weight: 700; min-width: 32px; text-align: right; }
+.task-progress { margin-top: 12px; position: relative; z-index: 1; }
+.task-progress-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.acc-track { flex: 1; height: 6px; background: var(--bg-deep); border-radius: 3px; overflow: hidden; }
+.acc-fill { height: 100%; border-radius: 3px; transition: width .5s; }
+.acc-val { font-size: 12px; font-weight: 700; min-width: 34px; text-align: right; font-family: var(--mono); }
+.task-progress-label { font-size: 11px; color: var(--text-muted); font-family: var(--mono); }
 
 /* ===== PRACTICE ===== */
 .pract-wrap { max-width: 800px; margin: 0 auto; }

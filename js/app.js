@@ -362,15 +362,21 @@ function renderTasks() {
     const g = $('tasks-grid'); g.innerHTML = '';
     TASKS_META.forEach(t => {
         const s = state.user?.taskStats?.[t.id] || { solved: 0, correct: 0 };
-        const totalQ = (QUESTIONS[t.id] || []).length;
-        const acc = s.solved > 0 ? Math.round(s.correct / s.solved * 100) : 0;
-        const accClr = acc >= 80 ? 'var(--green)' : acc >= 50 ? 'var(--amber)' : 'var(--red)';
+        const pct = s.solved > 0 ? Math.round(s.correct / s.solved * 100) : 0;
+        const accClr = s.solved > 0
+            ? (pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--amber)' : 'var(--red)')
+            : 'var(--text-muted)';
+        const accText = s.solved > 0 ? pct + '%' : '—';
         const d = document.createElement('div'); d.className = 'task-card';
         d.innerHTML = `<div class="task-num">${t.id}</div>
             <div class="task-title">${t.title}</div>
-            <div class="task-meta"><span class="task-diff">${'⭐'.repeat(t.difficulty)}</span><span class="task-solved-count">Решено: ${s.solved}</span></div>
-            <div class="task-bank">В базе: ${totalQ} вопросов</div>
-            ${s.solved > 0 ? `<div class="task-acc-bar"><div class="acc-track"><div class="acc-fill" style="width:${acc}%;background:${accClr}"></div></div><span class="acc-val" style="color:${accClr}">${acc}%</span></div>` : ''}`;
+            <div class="task-progress">
+                <div class="task-progress-row">
+                    <div class="acc-track"><div class="acc-fill" style="width:${pct}%;background:${accClr}"></div></div>
+                    <span class="acc-val" style="color:${accClr}">${accText}</span>
+                </div>
+                <span class="task-progress-label">${s.correct} / ${s.solved}</span>
+            </div>`;
         d.addEventListener('click', () => openConfig(t.id));
         g.appendChild(d);
     });
