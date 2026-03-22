@@ -403,7 +403,6 @@ function openConfig(id) {
     cfgTaskId = id; const t = TASKS_META.find(x => x.id === id); if (!t) return;
     $('mc-title').textContent = `Задание ${t.id}`;
     $('mc-desc').textContent = t.desc;
-    $('mc-diff').innerHTML = `Сложность: ${'⭐'.repeat(t.difficulty)}`;
     $('mc-pts').textContent = `+${t.pts} ⚡`;
     $('modal-config').classList.remove('hidden');
 }
