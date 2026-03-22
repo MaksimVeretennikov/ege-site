@@ -491,21 +491,23 @@ body { font-family: var(--font); background: var(--bg-deep); color: var(--text);
 .modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; }
 .modal.hidden { display: none; }
 .modal-bg { position: absolute; inset: 0; background: rgba(0,0,0,.6); backdrop-filter: blur(6px); }
-.modal-box { position: relative; z-index: 1; width: 90%; max-width: 540px; animation: fadeUp .3s ease; }
-.modal-box h2 { font-size: 22px; font-weight: 800; margin-bottom: 10px; }
-.mc-desc { font-size: 14px; color: var(--text-dim); margin-bottom: 20px; line-height: 1.5; }
+.modal-box { position: relative; z-index: 1; width: 90%; max-width: 420px; padding: 32px; animation: fadeUp .3s ease; }
+.modal-box h2 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+.mc-desc { font-size: 14px; color: var(--text-dim); margin-bottom: 24px; line-height: 1.5; }
 .mc-difficulty { display: none; }
-.mc-qty { margin-bottom: 16px; }
-.mc-qty label { font-size: 13px; font-weight: 600; color: var(--text-dim); margin-bottom: 8px; display: block; }
-.qty-pills { display: flex; gap: 6px; }
+.mc-qty { margin-bottom: 20px; }
+.mc-qty label { font-size: 13px; font-weight: 600; color: var(--text-dim); margin-bottom: 10px; display: block; }
+.qty-pills { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .pill {
-    padding: 8px 16px; border: 1px solid var(--border); border-radius: 8px;
-    background: transparent; font-family: var(--font); font-size: 14px; font-weight: 700;
+    padding: 11px 0; border: 1px solid var(--border); border-radius: 8px;
+    background: transparent; font-family: var(--font); font-size: 15px; font-weight: 700;
     color: var(--text-muted); cursor: pointer; transition: var(--transition);
+    text-align: center; width: 100%;
 }
 .pill.active { background: var(--accent); border-color: var(--accent); color: white; }
-.mc-info { font-size: 13px; color: var(--text-dim); margin-bottom: 20px; }
-.mc-actions { display: flex; gap: 10px; }
+.mc-info { font-size: 13px; color: var(--text-dim); margin-bottom: 24px; }
+.mc-actions { display: flex; gap: 12px; align-items: center; }
+.mc-actions .btn-glow { flex: 1; }
 
 .modal-lvl { text-align: center; padding: 40px; }
 .lvl-icon { font-size: 56px; margin-bottom: 8px; text-shadow: 0 0 40px rgba(139,92,246,.5); }
