@@ -828,3 +828,114 @@ body { font-family: var(--font); background: var(--bg-deep); color: var(--text);
     color: var(--text-muted); cursor: pointer; transition: var(--transition);
 }
 .fc-qty-pill.active { background: var(--accent); border-color: var(--accent); color: white; }
+
+/* ===== NEW STATS UI (ШАГ 3) ===== */
+
+/* Max-width и центровка */
+#stats-content { max-width: 1000px; margin: 0 auto; }
+
+/* Группа */
+.stats-group { margin-bottom: 16px; }
+.stats-group-header {
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; padding: 2px 0; user-select: none;
+}
+.stats-group-header:hover .stats-group-title { color: var(--accent-light); }
+.stats-group-left { display: flex; flex-direction: column; }
+.stats-group-title { font-size: 16px; font-weight: 800; transition: color .2s; }
+.stats-group-right { display: flex; align-items: center; gap: 10px; }
+.stats-group-acc { font-size: 16px; font-weight: 900; font-family: var(--mono); }
+.stats-group-detail { font-size: 12px; color: var(--text-muted); font-family: var(--mono); }
+.stats-group-chevron { color: var(--text-muted); font-size: 18px; font-weight: 700; width: 18px; text-align: center; }
+
+/* Collapsible body */
+.stats-group-body { padding-top: 14px; }
+.stats-group-body.collapsed { display: none; }
+
+/* Progress bar */
+.stats-group-progress { height: 5px; background: var(--bg-deep); border-radius: 3px; margin-bottom: 16px; overflow: hidden; }
+.stats-group-progress-bar { height: 100%; background: var(--accent); border-radius: 3px; transition: width .5s ease; }
+
+/* Task list */
+.stats-group-tasks { display: flex; flex-direction: column; }
+.stats-task-row { border-bottom: 1px solid var(--border); }
+.stats-task-row:last-child { border-bottom: none; }
+.stats-task-main {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 6px; cursor: pointer; border-radius: 8px;
+    transition: var(--transition); margin: 0 -6px;
+}
+.stats-task-main:hover { background: rgba(139,92,246,.07); }
+.stats-task-row.expanded .stats-task-main { background: rgba(139,92,246,.05); }
+.stats-task-num {
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    background: var(--bg-deep); border-radius: 8px;
+    font-weight: 800; font-size: 12px; color: var(--accent-light); flex-shrink: 0;
+}
+.stats-task-info { flex: 1; min-width: 0; }
+.stats-task-title { font-weight: 700; font-size: 13px; }
+.stats-task-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.stats-task-acc { font-weight: 800; font-size: 14px; font-family: var(--mono); min-width: 44px; text-align: right; }
+.stats-task-toggle { color: var(--text-muted); font-size: 16px; font-weight: 700; width: 18px; text-align: center; transition: transform .2s; }
+.stats-task-row.expanded .stats-task-toggle { transform: rotate(90deg); }
+
+/* Attempts */
+.stats-attempts { padding: 4px 0 12px 42px; display: flex; flex-direction: column; gap: 6px; }
+.stats-attempts.hidden { display: none; }
+.stats-attempt-card {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px; border-radius: 8px;
+    background: var(--bg-deep); border: 1px solid var(--border); font-size: 12px;
+}
+.stats-attempt-card.clickable { cursor: pointer; transition: var(--transition); }
+.stats-attempt-card.clickable:hover { border-color: var(--accent); background: rgba(139,92,246,.06); }
+.stats-attempt-date { color: var(--text-dim); }
+.stats-empty { padding: 10px 0; font-size: 13px; color: var(--text-muted); text-align: center; }
+
+/* ===== DETAIL VIEW (ШАГ 3) ===== */
+
+/* Sticky summary bar */
+.sd-detail-bar {
+    position: sticky;
+    top: calc(var(--topbar-h) + 8px);
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+.sd-bar-info { flex: 1; min-width: 0; }
+.sd-bar-title { display: block; font-size: 14px; font-weight: 800; }
+.sd-bar-meta { font-size: 11px; color: var(--text-muted); }
+.sd-bar-result { font-size: 14px; font-weight: 800; font-family: var(--mono); }
+
+/* Answer cards — цветная левая полоса по статусу */
+.sd-answers .sd-answer.sd-correct { border-left: 3px solid var(--green); }
+.sd-answers .sd-answer.sd-wrong { border-left: 3px solid var(--red); }
+
+/* Answer chips */
+.sd-result-row { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.sd-ans-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 10px; border-radius: 8px; font-size: 13px;
+    border: 1px solid transparent; align-self: flex-start;
+}
+.sd-chip-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; opacity: .7; }
+.sd-chip-wrong { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.4); color: var(--red-light); }
+.sd-chip-correct { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.4); color: var(--green-light); }
+.sd-chip-right { background: rgba(16,185,129,.15); border-color: rgba(16,185,129,.5); color: var(--green-light); font-weight: 700; }
+
+/* Explanation block */
+.sd-explain-block {
+    margin-top: 10px; padding: 8px 12px; border-radius: 8px;
+    background: rgba(148,163,184,.04);
+    border: 1px solid rgba(148,163,184,.1);
+    border-left: 3px solid var(--accent);
+}
+.sd-explain-label { font-size: 10px; font-weight: 700; letter-spacing: .4px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
+.sd-explain-text { font-size: 12px; color: var(--text-dim); line-height: 1.5; }

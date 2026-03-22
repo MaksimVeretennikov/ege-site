@@ -738,13 +738,10 @@ function equipItem(id, cat) {
 
 /* ===== STATS ===== */
 function initStats() {
-    document.querySelectorAll('.period-btn').forEach(b => b.addEventListener('click', () => {
-        document.querySelectorAll('.period-btn').forEach(x => x.classList.remove('active'));
-        b.classList.add('active'); renderStats(b.dataset.period);
-    }));
+    // period-btn удалены; рендер запускается из nav('stats')
 }
 
-async function renderStats(period = 'week') {
+async function renderStats() {
     const u = state.user; if (!u) return;
     const { sessions } = await listMyPracticeSessions(200);
     const mapped = sessions.map(s => ({
@@ -759,18 +756,12 @@ async function renderStats(period = 'week') {
         xpEarned: s.xp_earned,
         duration: s.duration_sec,
         items: s.items || [],
-        taskId: s.meta?.task_numbers?.[0] ?? null, // legacy compat для buildSessionLabel
+        taskId: s.meta?.task_numbers?.[0] ?? null,
+        startedAt: s.started_at,
+        finishedAt: s.finished_at,
     }));
-    const start = period === 'week' ? daysAgo(7) : period === 'month' ? daysAgo(30) : new Date(0);
-    const filt = mapped.filter(s => new Date(s.date) >= start);
-    const solved = filt.reduce((a, s) => a + s.total, 0);
-    const correct = filt.reduce((a, s) => a + s.correct, 0);
-    const acc = solved > 0 ? Math.round(correct / solved * 100) : 0;
-    const pts = filt.reduce((a, s) => a + s.pointsEarned, 0);
-    $('so-solved').textContent = solved; $('so-acc').textContent = acc + '%';
-    $('so-pts').textContent = pts; $('so-streak').textContent = u.bestStreak;
-    drawChart('chart-activity', filt, period);
-    renderTaskStats(filt); renderSessions(filt);
+    window.__taskStatsModel = buildTaskStatsModel(mapped);
+    renderNewStats(window.__taskStatsModel);
 }
 
 function drawChart(id, sessions, period) {
@@ -1371,6 +1362,256 @@ function aggregateStatsByTask(sessions) {
         }
     });
     return agg;
+}
+
+/* ===== TASK STATS DATA LAYER (ШАГ 1) ===== */
+
+function getStatsTaskGroups() {
+    return [
+        { key: 'text',        title: 'Работа с текстом', taskIds: [1, 2, 3, 22, 23, 24, 25, 26] },
+        { key: 'norms',       title: 'Нормы',            taskIds: [4, 5, 6, 7, 8] },
+        { key: 'spelling',    title: 'Орфография',       taskIds: [9, 10, 11, 12, 13, 14, 15] },
+        { key: 'punctuation', title: 'Пунктуация',       taskIds: [16, 17, 18, 19, 20, 21] },
+    ];
+}
+
+function getTaskGroupKey(taskId) {
+    const g = getStatsTaskGroups().find(g => g.taskIds.includes(taskId));
+    return g ? g.key : null;
+}
+
+function isTaskStatsSession(session) {
+    if (session.mode !== 'task') return false;
+    const meta = session.meta || {};
+    if (meta.session_type && meta.session_type !== 'task') return false;
+    if (meta.source && meta.source !== 'practice') return false;
+    return true;
+}
+
+function normalizeTaskStatsSession(session) {
+    const meta = session.meta || {};
+    let taskId = meta.task_numbers?.[0] ?? session.taskId ?? null;
+    if (taskId == null && session.items?.length > 0)
+        taskId = normalizeLegacyItem(session.items[0], 0).taskId ?? null;
+    if (taskId != null) taskId = Number(taskId);
+    const taskMeta = (typeof TASKS_META !== 'undefined' && taskId != null)
+        ? TASKS_META.find(x => x.id === taskId) : null;
+    const items = session.items || [];
+    const normItems = items.map((a, i) => normalizeLegacyItem(a, i));
+    const total = (session.total > 0) ? session.total : normItems.length;
+    const correct = (session.correct >= 0 && session.total > 0)
+        ? session.correct
+        : normItems.filter(a => a.correct).length;
+    return {
+        sessionId: session.id,
+        taskId,
+        taskTitle: taskMeta?.title ?? (taskId != null ? `Задание ${taskId}` : null),
+        blockKey: taskId != null ? getTaskGroupKey(taskId) : null,
+        startedAt: session.startedAt ?? null,
+        finishedAt: session.finishedAt ?? null,
+        createdAt: session.date,
+        durationSec: session.duration ?? null,
+        total,
+        correct,
+        accuracy: total > 0 ? Math.round(correct / total * 100) : 0,
+        items: normItems,
+    };
+}
+
+function buildTaskStatsModel(sessions) {
+    const taskSessions = sessions
+        .filter(isTaskStatsSession)
+        .map(normalizeTaskStatsSession)
+        .filter(s => s.taskId != null && s.blockKey != null);
+
+    const tasksById = {};
+    taskSessions.forEach(s => {
+        if (!tasksById[s.taskId]) {
+            tasksById[s.taskId] = {
+                taskId: s.taskId,
+                taskTitle: s.taskTitle,
+                blockKey: s.blockKey,
+                solved: 0, correct: 0, accuracy: 0,
+                lastPlayedAt: null,
+                sessions: [],
+            };
+        }
+        const t = tasksById[s.taskId];
+        t.solved += s.total;
+        t.correct += s.correct;
+        t.sessions.push(s);
+        if (!t.lastPlayedAt || s.createdAt > t.lastPlayedAt) t.lastPlayedAt = s.createdAt;
+    });
+    Object.values(tasksById).forEach(t => {
+        t.accuracy = t.solved > 0 ? Math.round(t.correct / t.solved * 100) : 0;
+        t.sessions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    });
+
+    const groups = getStatsTaskGroups().map(g => {
+        const tasks = g.taskIds.map(id => tasksById[id] ?? {
+            taskId: id,
+            taskTitle: (typeof TASKS_META !== 'undefined' ? TASKS_META.find(x => x.id === id)?.title : null) ?? `Задание ${id}`,
+            blockKey: g.key,
+            solved: 0, correct: 0, accuracy: 0,
+            lastPlayedAt: null,
+            sessions: [],
+        });
+        const solved = tasks.reduce((sum, t) => sum + t.solved, 0);
+        const correct = tasks.reduce((sum, t) => sum + t.correct, 0);
+        return { ...g, solved, correct,
+            accuracy: solved > 0 ? Math.round(correct / solved * 100) : 0,
+            tasks };
+    });
+
+    return { groups, tasksById, sessions: taskSessions };
+}
+
+/* ===== NEW STATS UI (ШАГ 3) ===== */
+
+function accColor(pct) {
+    return pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--amber)' : 'var(--red)';
+}
+
+function renderNewStats(model) {
+    const c = $('stats-content');
+    c.innerHTML = '';
+    model.groups.forEach((g, i) => c.appendChild(renderStatsGroup(g, i === 0)));
+}
+
+function renderStatsGroup(group, isFirst = false) {
+    const el = document.createElement('div');
+    el.className = 'stats-group glass';
+    el.id = 'stats-group-' + group.key;
+    const accText = group.solved > 0 ? group.accuracy + '%' : '—';
+    const pct = group.solved > 0 ? group.accuracy : 0;
+    const clr = group.solved > 0 ? accColor(pct) : 'var(--text-muted)';
+    const bodyClass = isFirst ? 'stats-group-body' : 'stats-group-body collapsed';
+    const chevron = isFirst ? '⌄' : '›';
+    el.innerHTML = `
+        <div class="stats-group-header">
+            <div class="stats-group-left">
+                <div class="stats-group-title">${group.title}</div>
+            </div>
+            <div class="stats-group-right">
+                <span class="stats-group-acc" style="color:${clr}">${accText}</span>
+                <span class="stats-group-detail">${group.correct} / ${group.solved}</span>
+                <span class="stats-group-chevron">${chevron}</span>
+            </div>
+        </div>
+        <div class="${bodyClass}">
+            <div class="stats-group-progress"><div class="stats-group-progress-bar" style="width:${pct}%"></div></div>
+            <div class="stats-group-tasks"></div>
+        </div>`;
+    el.querySelector('.stats-group-header').addEventListener('click', () => toggleGroupCollapse(el));
+    const tasksEl = el.querySelector('.stats-group-tasks');
+    group.tasks.forEach(t => tasksEl.appendChild(renderStatsTaskRow(t)));
+    return el;
+}
+
+function toggleGroupCollapse(el) {
+    const body = el.querySelector('.stats-group-body');
+    const chevron = el.querySelector('.stats-group-chevron');
+    const collapsed = body.classList.toggle('collapsed');
+    chevron.textContent = collapsed ? '›' : '⌄';
+}
+
+function renderStatsTaskRow(task) {
+    const el = document.createElement('div');
+    el.className = 'stats-task-row';
+    const accText = task.solved > 0 ? task.accuracy + '%' : '—';
+    const accClr = task.solved > 0 ? accColor(task.accuracy) : 'var(--text-muted)';
+    const lastPlayed = task.lastPlayedAt
+        ? new Date(task.lastPlayedAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
+        : 'ещё не решалось';
+    el.innerHTML = `
+        <div class="stats-task-main">
+            <div class="stats-task-num">${task.taskId}</div>
+            <div class="stats-task-info">
+                <div class="stats-task-title">${task.taskTitle}</div>
+                <div class="stats-task-meta">${task.correct} / ${task.solved} · ${lastPlayed}</div>
+            </div>
+            <div class="stats-task-acc" style="color:${accClr}">${accText}</div>
+            <div class="stats-task-toggle">›</div>
+        </div>
+        <div class="stats-attempts hidden"></div>`;
+    el.querySelector('.stats-task-main').addEventListener('click', () => toggleTaskAttempts(el, task));
+    return el;
+}
+
+function toggleTaskAttempts(el, task) {
+    const attemptsEl = el.querySelector('.stats-attempts');
+    const toggle = el.querySelector('.stats-task-toggle');
+    const expanded = el.classList.toggle('expanded');
+    toggle.textContent = expanded ? '⌄' : '›';
+    if (expanded && !attemptsEl.dataset.loaded) {
+        attemptsEl.dataset.loaded = '1';
+        renderTaskAttempts(task, attemptsEl);
+    }
+    attemptsEl.classList.toggle('hidden', !expanded);
+}
+
+function renderTaskAttempts(task, container) {
+    if (!task.sessions.length) {
+        container.innerHTML = '<div class="stats-empty">Попыток пока нет</div>';
+        return;
+    }
+    task.sessions.forEach(s => container.appendChild(renderTaskAttemptCard(s)));
+}
+
+function renderTaskAttemptCard(s) {
+    const el = document.createElement('div');
+    el.className = 'stats-attempt-card' + (s.items.length ? ' clickable' : '');
+    const d = new Date(s.createdAt).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const dur = s.durationSec ? `${Math.floor(s.durationSec / 60)}:${String(s.durationSec % 60).padStart(2, '0')}` : null;
+    const cls = s.accuracy >= 80 ? 'good' : s.accuracy >= 50 ? 'ok' : 'bad';
+    el.innerHTML = `
+        <div class="stats-attempt-date">${d}${dur ? ' · ⏱ ' + dur : ''}</div>
+        <div class="sess-result ${cls}">${s.correct}/${s.total} (${s.accuracy}%)</div>`;
+    if (s.items.length) el.addEventListener('click', () => showTaskAttemptDetail(s));
+    return el;
+}
+
+function showTaskAttemptDetail(s) {
+    const c = $('stats-content');
+    const d = new Date(s.createdAt).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+    const dur = s.durationSec ? `${Math.floor(s.durationSec / 60)}:${String(s.durationSec % 60).padStart(2, '0')}` : '—';
+    const cls = s.accuracy >= 80 ? 'good' : s.accuracy >= 50 ? 'ok' : 'bad';
+    let html = `
+        <div class="sd-detail-bar">
+            <button class="btn btn-sm btn-ghost" id="btn-sd-close">← Назад</button>
+            <div class="sd-bar-info">
+                <span class="sd-bar-title">${s.taskTitle ?? 'Задание ' + s.taskId}</span>
+                <span class="sd-bar-meta">${d} · ⏱ ${dur}</span>
+            </div>
+            <div class="sess-result ${cls} sd-bar-result">${s.correct}/${s.total} (${s.accuracy}%)</div>
+        </div>
+        <div class="sd-answers">`;
+    // Явно нормализуем items перед рендером — безопасно для legacy-сессий
+    const items = (s.items || []).map((a, i) => normalizeLegacyItem(a, i));
+    items.forEach((a, i) => {
+        const qTextHtml = a.qText ? `<div class="sd-q-text">${a.qText.replace(/\n/g, '<br>')}</div>` : '';
+        const userCls = a.correct ? 'sd-chip-correct' : 'sd-chip-wrong';
+        html += `<div class="sd-answer ${a.correct ? 'sd-correct' : 'sd-wrong'}">
+            <div class="sd-q-num">${i + 1}</div>
+            <div class="sd-q-body">
+                ${qTextHtml}
+                <div class="sd-result-row">
+                    <div class="sd-ans-chip ${userCls}">
+                        ${a.correct ? '✅' : '❌'} <span class="sd-chip-label">Ваш ответ:</span> <strong>${a.userAnswer}</strong>
+                    </div>
+                    ${!a.correct ? `<div class="sd-ans-chip sd-chip-right">✓ <span class="sd-chip-label">Верно:</span> <strong>${a.correctAnswer}</strong></div>` : ''}
+                </div>
+                ${a.explanation && !a.correct ? `
+                    <div class="sd-explain-block">
+                        <div class="sd-explain-label">Пояснение</div>
+                        <div class="sd-explain-text">${a.explanation.replace(/\n/g, '<br>')}</div>
+                    </div>` : ''}
+            </div>
+        </div>`;
+    });
+    html += '</div>';
+    c.innerHTML = html;
+    $('btn-sd-close').addEventListener('click', () => renderStats());
 }
 
 /* ===== FLASHCARDS ===== */
