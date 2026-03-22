@@ -362,21 +362,21 @@ function renderTasks() {
     const g = $('tasks-grid'); g.innerHTML = '';
     TASKS_META.forEach(t => {
         const s = state.user?.taskStats?.[t.id] || { solved: 0, correct: 0 };
+        const pct = s.solved > 0 ? Math.round(s.correct / s.solved * 100) : 0;
+        const accClr = s.solved > 0
+            ? (pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--amber)' : 'var(--red)')
+            : 'var(--text-muted)';
+        const accText = s.solved > 0 ? pct + '%' : '—';
         const d = document.createElement('div'); d.className = 'task-card';
-        const progressHtml = s.solved > 0 ? (() => {
-            const pct = Math.round(s.correct / s.solved * 100);
-            const accClr = pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--amber)' : 'var(--red)';
-            return `<div class="task-progress">
+        d.innerHTML = `<div class="task-num">${t.id}</div>
+            <div class="task-title">${t.title}</div>
+            <div class="task-progress">
                 <div class="task-progress-top">
                     <span class="task-progress-label">${s.correct} / ${s.solved}</span>
-                    <span class="acc-val" style="color:${accClr}">${pct}%</span>
+                    <span class="acc-val" style="color:${accClr}">${accText}</span>
                 </div>
                 <div class="acc-track"><div class="acc-fill" style="width:${pct}%;background:${accClr}"></div></div>
             </div>`;
-        })() : '';
-        d.innerHTML = `<div class="task-num">${t.id}</div>
-            <div class="task-title">${t.title}</div>
-            ${progressHtml}`;
         d.addEventListener('click', () => openConfig(t.id));
         g.appendChild(d);
     });
